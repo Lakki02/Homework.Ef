@@ -20,16 +20,17 @@ namespace Otus.Teaching.PromoCodeFactory.DataAccess.Extensions
                     .EnableSensitiveDataLogging();
             });
 
-            // автоматическое удаление БД и создание, последующее заполнение данными
-            //закоментиравно так как делаем в дальнейшем через миграции
-            //using (var serviceProvider = services.BuildServiceProvider()) 
-            //{
-            //    using DataDbContext context= serviceProvider.GetRequiredService<DataDbContext>();
-                
-            //    context.Database.EnsureDeleted();
-            //    context.Database.EnsureCreated();
-            //    SeedDatabase(context);
-            //}
+            //автоматическое удаление БД и создание, последующее заполнение данными
+           //закоментиравно так как делаем в дальнейшем через миграции
+            using (var serviceProvider = services.BuildServiceProvider())
+            {
+                using DataDbContext context = serviceProvider.GetRequiredService<DataDbContext>();
+
+                //context.Database.EnsureDeleted();
+                //context.Database.EnsureCreated();
+                context.Database.Migrate();
+                SeedDatabase(context);
+            }
 
             return services;
         }

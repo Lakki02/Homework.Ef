@@ -21,96 +21,95 @@ namespace Otus.Teaching.PromoCodeFactory.DataAccess.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<Role>()
-            .Property(r => r.Name)
-            .HasMaxLength(100)
-            .IsRequired();
+            modelBuilder.Entity<Role>(entity =>
+            {
+                entity.Property(r => r.Name)
+                .HasMaxLength(100)            
+                .IsRequired();
 
-            modelBuilder.Entity<Role>()
-                .Property(r => r.Description)
+                entity.Property(r => r.Description)
                 .HasMaxLength(250);
+            });
 
-            modelBuilder.Entity<Employee>()
-                .Property(e => e.FirstName)
+            modelBuilder.Entity<Employee>(entity =>
+            {
+                entity.Property(e => e.FirstName)
                 .HasMaxLength(100)
                 .IsRequired();
 
-            modelBuilder.Entity<Employee>()
-                .Property(e => e.LastName)
+                entity.Property(e => e.LastName)
                 .HasMaxLength(100)
                 .IsRequired();
 
-            modelBuilder.Entity<Employee>()
-                .Property(e => e.Email)
+                entity.Property(e => e.Email)
                 .HasMaxLength(200)
                 .IsRequired();
 
-            modelBuilder.Entity<Employee>()
-                .HasOne(e => e.Role)
+                entity.HasOne(e => e.Role)
                 .WithMany(r => r.Employees)
                 .HasForeignKey(e => e.RoleId);
+            });
+                
+            modelBuilder.Entity<Preference>(entity =>
+            {
+                entity.Property(p => p.Name)
+                .HasMaxLength(100)
+                .IsRequired();
+            }); 
 
-            modelBuilder.Entity<Preference>()
-                .Property(p => p.Name)
+            modelBuilder.Entity<Customer>(entity =>
+            {
+                entity.Property(c => c.FirstName)
                 .HasMaxLength(100)
                 .IsRequired();
 
-            modelBuilder.Entity<Customer>()
-                .Property(c => c.FirstName)
+                entity.Property(c => c.LastName)
                 .HasMaxLength(100)
                 .IsRequired();
 
-            modelBuilder.Entity<Customer>()
-                .Property(c => c.LastName)
-                .HasMaxLength(100)
-                .IsRequired();
-
-            modelBuilder.Entity<Customer>()
-                .Property(c => c.Email)
+                entity.Property(c => c.Email)
                 .HasMaxLength(200)
                 .IsRequired();
+            });
 
-            modelBuilder.Entity<CustomerPreference>()
-                .HasKey(cp => cp.Id);
+            modelBuilder.Entity<CustomerPreference>(entity =>
+            {
+                entity.HasKey(cp => cp.Id);
 
-            modelBuilder.Entity<CustomerPreference>()
-                .HasOne(cp => cp.Customer)
+                entity.HasOne(cp => cp.Customer)
                 .WithMany(c => c.CustomerPreferences)
                 .HasForeignKey(cp => cp.CustomerId);
 
-            modelBuilder.Entity<CustomerPreference>()
-                .HasOne(cp => cp.Preference)
+                entity.HasOne(cp => cp.Preference)
                 .WithMany(p => p.CustomerPreferences)
                 .HasForeignKey(cp => cp.PreferenceId);
+            });
 
-            modelBuilder.Entity<PromoCode>()
-                .Property(pc => pc.Code)
+            modelBuilder.Entity<PromoCode>(entity =>
+            {
+                entity.Property(pc => pc.Code)
                 .HasMaxLength(100)
                 .IsRequired();
 
-            modelBuilder.Entity<PromoCode>()
-                .Property(pc => pc.ServiceInfo)
+                entity.Property(pc => pc.ServiceInfo)
                 .HasMaxLength(500);
 
-            modelBuilder.Entity<PromoCode>()
-                .Property(pc => pc.PartnerName)
+                entity.Property(pc => pc.PartnerName)
                 .HasMaxLength(200)
                 .IsRequired();
 
-            modelBuilder.Entity<PromoCode>()
-                .HasOne(pc => pc.PartnerManager)
+                entity.HasOne(pc => pc.PartnerManager)
                 .WithMany()
                 .HasForeignKey(pc => pc.EmployeeId);
 
-            modelBuilder.Entity<PromoCode>()
-                .HasOne(pc => pc.Preference)
+                entity.HasOne(pc => pc.Preference)
                 .WithMany()
                 .HasForeignKey(pc => pc.PreferenceId);
 
-            modelBuilder.Entity<PromoCode>()
-                .HasOne(pc => pc.Customer)
+                entity.HasOne(pc => pc.Customer)
                 .WithMany(c => c.PromoCodes)
                 .HasForeignKey(pc => pc.CustomerId);
+            });
         }
     }
 }
