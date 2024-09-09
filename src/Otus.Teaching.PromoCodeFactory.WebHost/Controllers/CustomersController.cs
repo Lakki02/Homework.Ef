@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 using Otus.Teaching.PromoCodeFactory.Core.Abstractions.Repositories;
 using Otus.Teaching.PromoCodeFactory.Core.Domain.PromoCodeManagement;
 using Otus.Teaching.PromoCodeFactory.WebHost.Models;
@@ -37,9 +39,9 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
         /// Получение списка клиентов
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CustomerShortResponse>>> GetCustomersAsync()
+        public async Task<ActionResult<IEnumerable<CustomerShortResponse>>> GetCustomersAsync(CancellationToken token)
         {
-            IEnumerable<Customer> customers = await _customerRepository.GetAllAsync();
+            IEnumerable<Customer> customers = await _customerRepository.GetAllAsync(token);
             IEnumerable<CustomerShortResponse> response = customers.Select(c => new CustomerShortResponse
             {
                 Id = c.Id,
@@ -55,12 +57,12 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
         /// Получение клиента по ID
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<CustomerResponse>> GetCustomerAsync(Guid id)
+        public async Task<ActionResult<CustomerResponse>> GetCustomerAsync(Guid id, CancellationToken token)
         {
-            Customer? customer = await _customerRepository.GetByIdAsync(id);
+            Customer? customer = await _customerRepository.GetByIdAsync(id, token);
             if (customer is null) return NotFound();
 
-            IEnumerable<CustomerPreference> customerPreferences = await _customerPreferenceRepository.GetAllAsync();
+            IEnumerable<CustomerPreference> customerPreferences = await _customerPreferenceRepository.GetAllAsync(token);
             List<CustomerPreference> customerPreferencesFiltered = customerPreferences
                 .Where(cp => cp.CustomerId == customer.Id)
                 .ToList();
@@ -68,7 +70,7 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
             List<PreferenceResponse> preferences = new();
             foreach (CustomerPreference? cp in customerPreferencesFiltered)
             {
-                Preference? preference = await _preferenceRepository.GetByIdAsync(cp.PreferenceId);
+                Preference? preference = await _preferenceRepository.GetByIdAsync(cp.PreferenceId, token);
                 if (preference != null)
                 {
                     preferences.Add(new PreferenceResponse
@@ -79,7 +81,7 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
                 }
             }
 
-            IEnumerable<PromoCode> promoCodes = await _promoCodeRepository.GetAllAsync();
+            IEnumerable<PromoCode> promoCodes = await _promoCodeRepository.GetAllAsync(token);
             List<PromoCodeResponse> customerPromoCodes = promoCodes
                 .Where(pc => pc.CustomerId == customer.Id)
                 .Select(pc => new PromoCodeResponse
@@ -108,7 +110,7 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public async Task<IActionResult> CreateCustomerAsync(CreateOrEditCustomerRequest request)
+        public async Task<IActionResult> CreateCustomerAsync(CreateOrEditCustomerRequest request, CancellationToken token)
         {
             Customer customer = new()
             {
@@ -124,7 +126,7 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
                 PreferenceId = pid
             }).ToList();
 
-            await _customerRepository.AddAsync(customer);
+            await _customerRepository.AddAsync(customer, token);
 
             return Ok(customer.Id);
         }
@@ -133,22 +135,22 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
         /// Обновление данных клиента
         /// </summary>
         [HttpPut("{id}")]
-        public async Task<IActionResult> EditCustomersAsync(Guid id, CreateOrEditCustomerRequest request)
+        public async Task<IActionResult> EditCustomersAsync(Guid id, CreateOrEditCustomerRequest request, CancellationToken token)
         {
-            Customer? customer = await _customerRepository.GetByIdAsync(id);
+            Customer? customer = await _customerRepository.GetByIdAsync(id, token);
             if (customer is null) return NotFound();
 
             customer.FirstName = request.FirstName;
             customer.LastName = request.LastName;
             customer.Email = request.Email;
 
-            IEnumerable<CustomerPreference> customerPreferences = await _customerPreferenceRepository.GetAllAsync();
+            IEnumerable<CustomerPreference> customerPreferences = await _customerPreferenceRepository.GetAllAsync(token);
             List<CustomerPreference> existingPreferences = customerPreferences
                 .Where(cp => cp.CustomerId == customer.Id)
                 .ToList();
 
             foreach (CustomerPreference existingPreference in existingPreferences)
-                await _customerPreferenceRepository.DeleteAsync(existingPreference.Id);
+                await _customerPreferenceRepository.DeleteAsync(existingPreference.Id, token);
 
             foreach (Guid newPreferenceId in request.PreferenceIds)
             {
@@ -157,10 +159,10 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
                     CustomerId = customer.Id,
                     PreferenceId = newPreferenceId
                 };
-                await _customerPreferenceRepository.AddAsync(newCustomerPreference);
+                await _customerPreferenceRepository.AddAsync(newCustomerPreference, token);
             }
 
-            await _customerRepository.UpdateAsync(customer);
+            await _customerRepository.UpdateAsync(customer,token);
 
             return Ok(customer.Id);
         }
@@ -169,16 +171,16 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
         /// Удаление клиента
         /// </summary>
         [HttpDelete]
-        public async Task<IActionResult> DeleteCustomer(Guid id)
+        public async Task<IActionResult> DeleteCustomer(Guid id, CancellationToken token)
         {
-            Customer? customer = await _customerRepository.GetByIdAsync(id);
+            Customer? customer = await _customerRepository.GetByIdAsync(id, token);
             if (customer is null) return NotFound();
 
             ICollection<PromoCode> promoCodes = customer?.PromoCodes ?? [];
             foreach (PromoCode promoCode in promoCodes)
-                await _promoCodeRepository.DeleteAsync(promoCode.Id);
+                await _promoCodeRepository.DeleteAsync(promoCode.Id, token);
 
-            await _customerRepository.DeleteAsync(id);
+            await _customerRepository.DeleteAsync(id, token);
 
             return Ok();
         }

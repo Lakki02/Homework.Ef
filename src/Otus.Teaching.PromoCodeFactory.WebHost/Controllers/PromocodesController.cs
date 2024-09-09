@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Otus.Teaching.PromoCodeFactory.Core.Abstractions.Repositories;
@@ -37,9 +38,9 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public async Task<ActionResult<List<PromoCodeShortResponse>>> GetPromocodesAsync()
+        public async Task<ActionResult<List<PromoCodeShortResponse>>> GetPromocodesAsync(CancellationToken token)
         {
-            IEnumerable<PromoCode> promoCodes = await _promoCodeRepository.GetAllAsync();
+            IEnumerable<PromoCode> promoCodes = await _promoCodeRepository.GetAllAsync(token);
             List<PromoCodeShortResponse> response = promoCodes.Select(pc => new PromoCodeShortResponse
             {
                 Id = pc.Id,
@@ -58,10 +59,47 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public Task<IActionResult> GivePromoCodesToCustomersWithPreferenceAsync(GivePromoCodeRequest request)
+        public async Task<IActionResult> GivePromoCodesToCustomersWithPreferenceAsync(GivePromoCodeRequest request
+            , CancellationToken token)
         {
-            //TODO: Создать промокод и выдать его клиентам с указанным предпочтением
-            throw new NotImplementedException();
+            IEnumerable<Preference> preferences = await _preferenceRepository.GetAllAsync(token);
+            Preference? selectedPreference = preferences.FirstOrDefault(p => p.Name == request.Preference);
+            if (selectedPreference is null)
+                return BadRequest($"Предпочтение {request.Preference} не найдено.");
+
+            IEnumerable<CustomerPreference> customerPreferences = await _customerPreferenceRepository.GetAllAsync(token);
+            List<Guid> customerIDsWithPreference = customerPreferences
+                .Where(cp => cp.PreferenceId == selectedPreference.Id)
+                .Select(cp => cp.CustomerId)
+                .ToList();
+
+            if (customerIDsWithPreference.Count == 0)
+                return BadRequest($"Нет пользователей с предпочтением {request.Preference}.");
+
+            foreach (Guid customerID in customerIDsWithPreference)
+            {
+                Customer? customer = await _customerRepository.GetByIdAsync(customerID, token);
+                if (customer is null) continue;
+
+                PromoCode promoCode = new()
+                {
+                    Id = Guid.NewGuid(),
+                    Code = $"{request.PromoCode}-{customerID}",
+                    BeginDate = DateTime.UtcNow,
+                    EndDate = DateTime.UtcNow.AddMonths(1),
+                    ServiceInfo = request.ServiceInfo,
+                    PartnerName = request.PartnerName,
+                    PreferenceId = selectedPreference.Id,
+                    CustomerId = customerID,
+                    EmployeeId = Guid.Parse("451533d5-d8d5-4a11-9c7b-eb9f14e1a32f")
+                };
+
+                await _promoCodeRepository.AddAsync(promoCode, token);
+                customer.PromoCodes.Add(promoCode);
+                await _customerRepository.UpdateAsync(customer, token);
+            }
+
+            return Ok();
         }
     }
 }

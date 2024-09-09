@@ -4,6 +4,7 @@ using Otus.Teaching.PromoCodeFactory.Core.Domain;
 using Otus.Teaching.PromoCodeFactory.DataAccess.Data;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Otus.Teaching.PromoCodeFactory.DataAccess.Repositories
@@ -19,34 +20,34 @@ namespace Otus.Teaching.PromoCodeFactory.DataAccess.Repositories
             _dbSet = _dataDbContext.Set<T>();
         }
 
-        public async Task<IEnumerable<T>> GetAllAsync()
+        public async Task<IEnumerable<T>> GetAllAsync(CancellationToken token)
         {
-            return await _dbSet.ToListAsync();
+            return await _dbSet.AsNoTracking().ToListAsync(token);
         }
 
-        public async Task<T> GetByIdAsync(Guid id)
+        public async Task<T> GetByIdAsync(Guid id, CancellationToken token)
         {
-            return await _dbSet.FindAsync(id);
+            return await _dbSet.FindAsync(id, token);
         }
 
-        public async Task AddAsync(T entity)
+        public async Task AddAsync(T entity, CancellationToken token)
         {
-            await _dbSet.AddAsync(entity);
-            await _dataDbContext.SaveChangesAsync();
+            await _dbSet.AddAsync(entity, token);
+            await _dataDbContext.SaveChangesAsync(token);
         }
 
-        public async Task UpdateAsync(T entity)
+        public async Task UpdateAsync(T entity, CancellationToken token)
         {
             _dbSet.Update(entity);
-            await _dataDbContext.SaveChangesAsync();
+            await _dataDbContext.SaveChangesAsync(token);
         }
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(Guid id, CancellationToken token)
         {
-            T? enity = await GetByIdAsync(id);
+            T? enity = await GetByIdAsync(id, token);
             if (enity != null)
             {
                 _dbSet.Remove(enity);
-                await _dataDbContext.SaveChangesAsync();
+                await _dataDbContext.SaveChangesAsync(token);
             }
         }
     }

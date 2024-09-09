@@ -29,7 +29,7 @@ namespace Otus.Teaching.PromoCodeFactory.DataAccess.Extensions
                 //context.Database.EnsureDeleted();
                 //context.Database.EnsureCreated();
                 context.Database.Migrate();
-                SeedDatabase(context);
+                //SeedDatabase(context);
             }
 
             return services;
