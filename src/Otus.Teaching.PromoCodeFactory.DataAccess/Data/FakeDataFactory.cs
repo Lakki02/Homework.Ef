@@ -78,12 +78,26 @@ namespace Otus.Teaching.PromoCodeFactory.DataAccess.Data
                         Email = "ivan_sergeev@mail.ru",
                         FirstName = "Иван",
                         LastName = "Петров",
-                        //TODO: Добавить предзаполненный список предпочтений
                     }
                 };
 
                 return customers;
             }
         }
+
+        public static IEnumerable<PromoCode> PromoCodes => new List<PromoCode>
+    {
+        new() {
+            Id = Guid.NewGuid(),
+            Code = "PROMO2023",
+            ServiceInfo = "Service Info 1",
+            BeginDate = DateTime.Now.AddDays(-10),
+            EndDate = DateTime.Now.AddMonths(1),
+            PartnerName = "Partner 1",
+            EmployeeId = Guid.Parse("451533d5-d8d5-4a11-9c7b-eb9f14e1a32f"), // PartnerManager
+            PreferenceId = Guid.Parse("ef7f299f-92d7-459f-896e-078ed53ef99c"), // Театр
+            CustomerId = Guid.Parse("a6c8c6b1-4349-45b0-ab31-244740aaf0f0") // Customer
+        }
+    };
     }
 }
